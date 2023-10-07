@@ -5,6 +5,7 @@ from typing import Optional
 from pymongo.collection import Collection
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
+import csv
 
 with open("credentials.json") as f:
     values = json.load(f)
@@ -14,10 +15,19 @@ password = values["password"]
 
 uri = f"mongodb+srv://{username}:{password}@hamalneedarim.tuv6lf6.mongodb.net/?retryWrites=true&w=majority"
 
+client = MongoClient(uri, server_api=ServerApi('1'))
 
-def add_user(collection: Collection, fullname: str, last_seen_place: str, age: Optional[int] = None,
+db = client["hamal-needarim"]
+collection = db["needarim"]
+
+
+def add_user(fullname: str,
+             last_seen_place: str,
+             age: Optional[int] = None,
              phone_number: Optional[str] = None,
-             current_status: Optional[str] = "Unknown", last_updated: datetime.datetime = datetime.datetime.now()):
+             current_status: Optional[str] = "Unknown",
+             last_updated: datetime.datetime = datetime.datetime.now(),
+             notes: Optional[str] = None):
     result = collection.insert_one(
         {
             "fullname": fullname,
@@ -25,7 +35,8 @@ def add_user(collection: Collection, fullname: str, last_seen_place: str, age: O
             "phone_number": phone_number,
             "last_seen_place": last_seen_place,
             "current_status": current_status,
-            "last_updated": last_updated
+            "last_updated": last_updated,
+            "notes": notes
         }
     )
     if result.acknowledged:
@@ -37,12 +48,28 @@ def add_user(collection: Collection, fullname: str, last_seen_place: str, age: O
         print("Failed to insert data.")
 
 
-def main():
-    client = MongoClient(uri, server_api=ServerApi('1'))
+def parse_csv1(filename: str):
+    # parses this csv
+    # https://docs.google.com/spreadsheets/d/19-g2ybI4xFSAoRlyZffJGLVfHNKgE04rm9GyTWr97fU/edit#gid=0
+    data = []
+    with open("csv1.json", encoding="utf-8") as csv1_key_mapping:
+        key_mapping = json.load(csv1_key_mapping)
 
-    db = client["hamal-needarim"]
-    collection = db["needarim"]
-    print(collection.find_one({"fullname": "John Doe"}))
+    with open(filename, mode='r', newline='', encoding='utf-8') as csvfile:
+        csv_reader = csv.DictReader(csvfile)
+        for row in csv_reader:
+            mapped_row = {}
+            for key, value in row.items():
+                if key in key_mapping:
+                    mapped_row[key_mapping[key]] = value
+
+            if mapped_row and mapped_row["fullname"]:
+                data.append(mapped_row)
+    return data
+
+
+def main():
+    collection.insert_many(parse_csv1("abc.csv"))
     client.close()
 
 

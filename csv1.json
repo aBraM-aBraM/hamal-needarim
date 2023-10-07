@@ -1,0 +1,9 @@
+{
+    "שם מלא": "fullname",
+    "גיל (נא לא להצר את העמודה)": "age",
+    "עדכון אחרון (אוטומטי)": "last_updated",
+    "טלפון": "phone_number",
+    "מקום זיהוי אחרון": "last_seen_place",
+    "מצב נוכחי": "current_status",
+    "הערות": "notes"
+}
