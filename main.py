@@ -1,6 +1,6 @@
 import datetime
 import json
-from typing import Optional
+from typing import Optional, List
 
 from pymongo.collection import Collection
 from pymongo.mongo_client import MongoClient
@@ -68,8 +68,34 @@ def parse_csv1(filename: str):
     return data
 
 
+def safe_upload_entries(new_entries: List[dict]):
+    for entry in new_entries:
+        # Check if there's an existing entry with the same full_name and phone_number
+        existing_entry = collection.find_one({
+            "fullname": entry["fullname"],
+            "phone_number": entry["phone_number"]
+        })
+
+        if existing_entry:
+            # Update existing entry
+            for key, value in entry.items():
+                # Skip empty keys
+                if key == "notes" and existing_entry.get(key):
+                    # Append notes with a newline if notes exist in the existing entry
+                    existing_entry[key] += "\n" + value
+                elif key in ["current_status", "last_updated", "last_seen_place"]:
+                    existing_entry[key] = value
+
+            # Save the updated entry
+            collection.save(existing_entry)
+        else:
+            collection.insert_one(entry)
+
+
 def main():
-    collection.insert_many(parse_csv1("abc.csv"))
+    for document in collection.find({}):
+        print(document)
+
     client.close()
 
 
